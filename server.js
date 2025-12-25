@@ -1,87 +1,40 @@
-const express = require("express");
-const multer = require("multer");
-const fs = require("fs");
-const path = require("path");
+const express = require('express');
+const cors = require('cors');
+const multer = require('multer');
+const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-
-/* =========================
-   CREATE UPLOADS FOLDER
-========================= */
-const uploadsPath = path.join(__dirname, "uploads");
-if (!fs.existsSync(uploadsPath)) {
-  fs.mkdirSync(uploadsPath);
-}
-
-/* =========================
-   MIDDLEWARE
-========================= */
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-/* =========================
-   SERVE MP3 FILES PUBLICLY
-========================= */
-app.use("/uploads", express.static(uploadsPath));
+// Serve uploads folder as static
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-/* =========================
-   MULTER CONFIG
-========================= */
+// Multer setup
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsPath);
+  destination: function (req, file, cb) {
+    cb(null, 'uploads/');
   },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + '-' + file.originalname);
   }
 });
 const upload = multer({ storage });
 
-/* =========================
-   HOME CHECK
-========================= */
-app.get("/", (req, res) => {
-  res.send("Oluwa-Timileyin Radio Backend Running");
+// Upload endpoint
+app.post('/music/upload', upload.single('file'), (req, res) => {
+  res.json({ success: true, file: `/uploads/${req.file.filename}` });
 });
 
-/* =========================
-   ADMIN PAGE
-========================= */
-app.get("/admin", (req, res) => {
-  res.send(`
-    <h2>Radio Admin Upload</h2>
-    <form method="POST" action="/admin/upload" enctype="multipart/form-data">
-      <input type="password" name="pin" placeholder="Admin PIN" required /><br><br>
-      <input type="file" name="music" accept="audio/*" required /><br><br>
-      <button type="submit">Upload Music</button>
-    </form>
-  `);
-});
-
-/* =========================
-   UPLOAD ROUTE
-========================= */
-app.post("/admin/upload", upload.single("music"), (req, res) => {
-  if (req.body.pin !== "1234") {
-    return res.status(403).send("Wrong Admin PIN");
-  }
-  res.send("Upload successful");
-});
-
-/* =========================
-   LIST MUSIC FILES
-========================= */
-app.get("/music/list", (req, res) => {
-  fs.readdir(uploadsPath, (err, files) => {
-    if (err) return res.json([]);
-    res.json(files.map(file => "/uploads/" + file));
+// List files endpoint
+const fs = require('fs');
+app.get('/music/list', (req, res) => {
+  fs.readdir('uploads', (err, files) => {
+    if (err) return res.status(500).json({ error: err });
+    const fileList = files.map(file => '/uploads/' + file);
+    res.json(fileList);
   });
 });
 
-/* =========================
-   START SERVER
-========================= */
-app.listen(PORT, () => {
-  console.log("Oluwa-Timileyin Radio Backend Running");
-});
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
