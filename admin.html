@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Oluwa-Timileyin Radio Admin</title>
+</head>
+<body style="font-family:sans-serif; padding:20px;">
+  <h2>Radio Admin Upload</h2>
+
+  <input type="password" id="pin" placeholder="Admin PIN"><br><br>
+
+  <input type="file" id="music" accept="audio/*"><br><br>
+
+  <button onclick="upload()">Upload</button>
+
+  <p id="msg"></p>
+
+<script>
+function upload() {
+  const pin = document.getElementById("pin").value;
+  const file = document.getElementById("music").files[0];
+  if (!file) return alert("Select a file");
+
+  const form = new FormData();
+  form.append("music", file);
+  form.append("pin", pin);
+
+  fetch("/admin/upload", {
+    method: "POST",
+    body: form
+  })
+  .then(r => r.text())
+  .then(t => document.getElementById("msg").innerText = t)
+  .catch(e => alert("Upload failed"));
+}
+</script>
+</body>
+</html>
