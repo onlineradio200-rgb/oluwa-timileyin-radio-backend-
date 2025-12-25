@@ -1,49 +1,64 @@
-// ====== IMPORTS ======
 const express = require("express");
 const multer = require("multer");
-const path = require("path");
 const fs = require("fs");
-
+const path = require("path");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// ====== STORAGE ======
-const upload = multer({
-  dest: "uploads/"
+// Create uploads folder if it doesn't exist
+const uploadFolder = path.join(__dirname, "uploads");
+if (!fs.existsSync(uploadFolder)) {
+  fs.mkdirSync(uploadFolder);
+}
+
+// Multer configuration
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadFolder);
+  },
+  filename: function (req, file, cb) {
+    cb(null, Date.now() + "-" + file.originalname);
+  },
 });
+const upload = multer({ storage });
 
-// ====== SERVE FRONTEND FILES ======
-app.use(express.static("public"));
+// Middleware
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
 
-// ====== ADMIN PAGE ======
+// Admin panel route
 app.get("/admin", (req, res) => {
   res.sendFile(path.join(__dirname, "admin.html"));
 });
 
-// ====== ADMIN UPLOAD HANDLER ======
+// Admin upload route
 app.post("/admin/upload", upload.single("music"), (req, res) => {
   const pin = req.body.pin;
-  if (pin !== "1234") { // Change PIN as you want
+  if (pin !== "1234") {
     return res.status(403).send("Wrong PIN");
   }
-  res.send("Upload successful");
+
+  if (!req.file) {
+    return res.status(400).send("No file uploaded");
+  }
+
+  res.send("Upload successful!");
 });
 
-// ====== LIST ALL UPLOADED MUSIC ======
+// Get list of uploaded music
 app.get("/music/list", (req, res) => {
-  fs.readdir(path.join(__dirname, "uploads"), (err, files) => {
-    if (err) return res.status(500).send("Error reading files");
-    // Return full URLs for frontend
-    const baseUrl = `${req.protocol}://${req.get("host")}/uploads/`;
-    const urls = files.map(f => baseUrl + f);
-    res.json(urls);
+  fs.readdir(uploadFolder, (err, files) => {
+    if (err) return res.status(500).json({ error: "Cannot read files" });
+
+    const musicFiles = files.map((file) => `/uploads/${file}`);
+    res.json(musicFiles);
   });
 });
 
-// ====== SERVE UPLOADED FILES ======
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// Serve uploaded files
+app.use("/uploads", express.static(uploadFolder));
 
-// ====== START SERVER ======
+// Start server
 app.listen(PORT, () => {
   console.log(`Oluwa-Timileyin Radio Backend Running on port ${PORT}`);
 });
