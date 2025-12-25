@@ -1,38 +1,96 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Oluwa-Timileyin Radio Admin</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #1a1a1a, #333333);
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+
+    h1 {
+      margin-bottom: 20px;
+      color: #ffcc00;
+    }
+
+    form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+      background: rgba(0,0,0,0.6);
+      padding: 30px;
+      border-radius: 15px;
+    }
+
+    input[type="file"], input[type="password"] {
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      width: 250px;
+    }
+
+    button {
+      padding: 10px 20px;
+      border-radius: 8px;
+      border: none;
+      background: #ffcc00;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    button:hover {
+      background: #ffaa00;
+    }
+
+    #message {
+      margin-top: 10px;
+      color: #00ff99;
+    }
+  </style>
 </head>
-<body style="font-family:sans-serif; padding:20px;">
-  <h2>Radio Admin Upload</h2>
+<body>
+  <h1>Oluwa-Timileyin Radio Admin</h1>
+  <form id="uploadForm">
+    <input type="password" name="pin" placeholder="Enter Admin PIN" required>
+    <input type="file" name="music" accept="audio/*" required>
+    <button type="submit">Upload Music</button>
+  </form>
+  <div id="message"></div>
 
-  <input type="password" id="pin" placeholder="Admin PIN"><br><br>
+  <script>
+    const form = document.getElementById('uploadForm');
+    const message = document.getElementById('message');
 
-  <input type="file" id="music" accept="audio/*"><br><br>
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      message.textContent = "Uploading...";
 
-  <button onclick="upload()">Upload</button>
+      const formData = new FormData(form);
 
-  <p id="msg"></p>
+      try {
+        const response = await fetch('/admin/upload', {
+          method: 'POST',
+          body: formData
+        });
 
-<script>
-function upload() {
-  const pin = document.getElementById("pin").value;
-  const file = document.getElementById("music").files[0];
-  if (!file) return alert("Select a file");
-
-  const form = new FormData();
-  form.append("music", file);
-  form.append("pin", pin);
-
-  fetch("/admin/upload", {
-    method: "POST",
-    body: form
-  })
-  .then(r => r.text())
-  .then(t => document.getElementById("msg").innerText = t)
-  .catch(e => alert("Upload failed"));
-}
-</script>
+        const text = await response.text();
+        message.textContent = text;
+      } catch (error) {
+        message.textContent = "Error uploading file";
+      }
+    });
+  </script>
 </body>
-</html>
+  </html>
