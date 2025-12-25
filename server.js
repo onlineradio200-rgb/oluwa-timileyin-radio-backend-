@@ -1,5 +1,5 @@
+// ====== IMPORTS ======
 const express = require("express");
-const cors = require("cors");
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
@@ -7,33 +7,43 @@ const fs = require("fs");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
-app.use(express.json());
-app.use("/uploads", express.static("uploads"));
-
-if (!fs.existsSync("uploads")) {
-  fs.mkdirSync("uploads");
-}
-
-const storage = multer.diskStorage({
-  destination: "uploads/",
-  filename: (req, file, cb) =>
-    cb(null, Date.now() + "-" + file.originalname),
-});
-const upload = multer({ storage });
-
-app.get("/", (req, res) => {
-  res.send("Oluwa-Timileyin Radio Backend Running");
+// ====== STORAGE ======
+const upload = multer({
+  dest: "uploads/"
 });
 
-app.get("/music/list", (req, res) => {
-  res.json(fs.readdirSync("uploads"));
+// ====== SERVE FRONTEND FILES ======
+app.use(express.static("public"));
+
+// ====== ADMIN PAGE ======
+app.get("/admin", (req, res) => {
+  res.sendFile(path.join(__dirname, "admin.html"));
 });
 
+// ====== ADMIN UPLOAD HANDLER ======
 app.post("/admin/upload", upload.single("music"), (req, res) => {
-  res.json({ success: true, file: req.file.filename });
+  const pin = req.body.pin;
+  if (pin !== "1234") { // Change PIN as you want
+    return res.status(403).send("Wrong PIN");
+  }
+  res.send("Upload successful");
 });
 
+// ====== LIST ALL UPLOADED MUSIC ======
+app.get("/music/list", (req, res) => {
+  fs.readdir(path.join(__dirname, "uploads"), (err, files) => {
+    if (err) return res.status(500).send("Error reading files");
+    // Return full URLs for frontend
+    const baseUrl = `${req.protocol}://${req.get("host")}/uploads/`;
+    const urls = files.map(f => baseUrl + f);
+    res.json(urls);
+  });
+});
+
+// ====== SERVE UPLOADED FILES ======
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+
+// ====== START SERVER ======
 app.listen(PORT, () => {
-  console.log("Backend running on port", PORT);
+  console.log(`Oluwa-Timileyin Radio Backend Running on port ${PORT}`);
 });
