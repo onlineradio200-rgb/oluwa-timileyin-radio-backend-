@@ -1,50 +1,58 @@
-const express = require("express");
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+const express = require('express');
+const path = require('path');
+const multer = require('multer');
+const fs = require('fs');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Storage setup for uploads
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, "uploads/");
-  },
-  filename: function (req, file, cb) {
-    cb(null, Date.now() + "-" + file.originalname);
-  },
-});
+// --- Middleware ---
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
+// Serve uploads folder
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Serve frontend static files
+app.use('/', express.static(path.join(__dirname, '../frontend')));
+
+// --- Ensure uploads folder exists ---
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir);
+}
+
+// --- Multer setup for uploads ---
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/');
+  },
+  filename: (req, file, cb) => {
+    const timestamp = Date.now();
+    const ext = path.extname(file.originalname);
+    cb(null, `${timestamp}-${file.originalname}`);
+  }
+});
 const upload = multer({ storage });
 
-// Make uploads folder accessible publicly
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+// --- Routes ---
 
-// Upload endpoint (admin)
-app.post("/upload", upload.single("audio"), (req, res) => {
-  res.json({ success: true, file: req.file.filename });
+// Upload music (POST from admin.html)
+app.post('/upload', upload.single('music'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  res.json({ success: true, filename: req.file.filename, url: `/uploads/${req.file.filename}` });
 });
 
 // Get list of uploaded music
-app.get("/music/list", (req, res) => {
-  fs.readdir("uploads/", (err, files) => {
-    if (err) return res.status(500).json({ error: "Cannot read files" });
-    // Only send full URL for frontend
-    const list = files.map((f) => ({
-      title: f.replace(/\d+-/, ""), // remove timestamp prefix
-      url: `${req.protocol}://${req.get("host")}/uploads/${f}`,
-    }));
-    res.json(list);
+app.get('/music/list', (req, res) => {
+  fs.readdir(uploadDir, (err, files) => {
+    if (err) return res.status(500).json({ error: 'Failed to read uploads' });
+    const audioFiles = files.filter(f => ['.mp3', '.aac', '.wav'].includes(path.extname(f)));
+    res.json(audioFiles);
   });
 });
 
-// Live stream placeholder
-app.get("/live", (req, res) => {
-  res.json({
-    title: "Live Radio",
-    url: "https://YOUR_LIVE_STREAM_URL_HERE", // Replace with live mic stream later
-  });
+// --- Start server ---
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
