@@ -16,9 +16,9 @@ if (!fs.existsSync(uploadDir)) {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-/* ===== Serve static files ===== */
+/* ===== Serve static folders ===== */
 app.use("/uploads", express.static(uploadDir));
-app.use("/", express.static(path.join(__dirname, "public")));
+app.use(express.static(path.join(__dirname, "public"))); // 👈 THIS IS THE FIX
 
 /* ===== Multer setup ===== */
 const storage = multer.diskStorage({
@@ -26,21 +26,13 @@ const storage = multer.diskStorage({
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    const uniqueName = Date.now() + "-" + file.originalname;
-    cb(null, uniqueName);
+    cb(null, Date.now() + "-" + file.originalname);
   }
 });
 
 const upload = multer({ storage });
 
-/* ===== Routes ===== */
-
-/* Test route */
-app.get("/health", (req, res) => {
-  res.json({ status: "Backend running OK" });
-});
-
-/* Upload music */
+/* ===== Upload route ===== */
 app.post("/admin/upload", upload.single("audio"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No file uploaded" });
@@ -48,30 +40,24 @@ app.post("/admin/upload", upload.single("audio"), (req, res) => {
 
   res.json({
     success: true,
-    file: `/uploads/${req.file.filename}`
+    url: `/uploads/${req.file.filename}`
   });
 });
 
-/* List music */
+/* ===== List music ===== */
 app.get("/music/list", (req, res) => {
   fs.readdir(uploadDir, (err, files) => {
-    if (err) return res.status(500).json([]);
+    if (err) return res.json([]);
 
-    const audioFiles = files.filter(f =>
+    const audio = files.filter(f =>
       f.endsWith(".mp3") || f.endsWith(".aac") || f.endsWith(".wav")
     );
 
-    const urls = audioFiles.map(f => `/uploads/${f}`);
-    res.json(urls);
+    res.json(audio.map(f => `/uploads/${f}`));
   });
-});
-
-/* Fallback */
-app.use((req, res) => {
-  res.status(404).send("Route not found");
 });
 
 /* ===== Start server ===== */
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("Server running on port " + PORT);
 });
