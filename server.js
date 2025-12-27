@@ -1,64 +1,49 @@
 const express = require("express");
-const path = require("path");
+const cors = require("cors");
 const multer = require("multer");
+const path = require("path");
 const fs = require("fs");
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-/* ---------- MIDDLEWARE ---------- */
+app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 
-/* ---------- STATIC FILES ---------- */
-// THIS IS THE MOST IMPORTANT LINE
-app.use(express.static(path.join(__dirname, "public")));
-
-// Serve uploaded audio files
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
-
-/* ---------- ENSURE UPLOADS FOLDER EXISTS ---------- */
+// ===============================
+// UPLOAD FOLDER
+// ===============================
 const uploadDir = path.join(__dirname, "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir);
 }
 
-/* ---------- MULTER SETUP ---------- */
+// ===============================
+// MULTER CONFIG
+// ===============================
 const storage = multer.diskStorage({
   destination: uploadDir,
   filename: (req, file, cb) => {
-    const uniqueName = Date.now() + "-" + file.originalname;
-    cb(null, uniqueName);
-  },
+    cb(null, Date.now() + "-" + file.originalname);
+  }
 });
-
 const upload = multer({ storage });
 
-/* ---------- ROUTES ---------- */
+// ===============================
+// SERVE AUDIO FILES
+// ===============================
+app.use("/uploads", express.static(uploadDir));
 
-// Home (radio page)
+// ===============================
+// ROUTES
+// ===============================
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
-
-// Admin page
-app.get("/admin", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "admin.html"));
-});
-
-// Upload music
-app.post("/admin/upload", upload.single("audio"), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ message: "No file uploaded" });
-  }
-
   res.json({
-    message: "Upload successful",
-    file: `/uploads/${req.file.filename}`,
+    status: "OK",
+    message: "Oluwa-Timileyin Radio Backend Running"
   });
 });
 
-// List music
 app.get("/music/list", (req, res) => {
   fs.readdir(uploadDir, (err, files) => {
     if (err) return res.json([]);
@@ -67,7 +52,17 @@ app.get("/music/list", (req, res) => {
   });
 });
 
-/* ---------- START SERVER ---------- */
+app.post("/admin/upload", upload.single("audio"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ error: "No file uploaded" });
+  }
+  res.json({
+    success: true,
+    file: `/uploads/${req.file.filename}`
+  });
+});
+
+// ===============================
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log("Server running on port " + PORT);
 });
