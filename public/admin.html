@@ -2,76 +2,46 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Radio Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ocean Radio - Admin</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h2>🎧 Radio Admin Panel</h2>
-
-  <!-- Upload Audio -->
-  <h3>Upload Audio</h3>
-  <form id="uploadForm">
-    <input type="file" id="audioFile" name="audio" accept=".mp3,.aac,.wav,.ogg" required>
-    <button type="submit">Upload</button>
-  </form>
-  <div id="uploadStatus"></div>
-
-  <hr />
-
-  <!-- Live Mic Control -->
-  <h3>🎙️ Live Broadcast</h3>
-  <button id="startLive">Go Live (Mic)</button>
-  <button id="stopLive" disabled>Stop Live</button>
+  <div class="app-container">
+    <h1>Admin Panel</h1>
+    <form id="upload-form">
+      <label for="audio-file">Upload Audio</label>
+      <input type="file" id="audio-file" name="audio" accept=".mp3,.aac,.wav,.ogg">
+      <button type="submit">Upload</button>
+    </form>
+    <div id="upload-result"></div>
+  </div>
 
   <script>
-    const BACKEND_URL = "https://oluwa-timileyin-radio-backend-jgwk.onrender.com";
+    const form = document.getElementById("upload-form");
+    const resultDiv = document.getElementById("upload-result");
 
-    // ----- Upload Audio -----
-    const form = document.getElementById("uploadForm");
-    const statusDiv = document.getElementById("uploadStatus");
-
-    form.onsubmit = async (e) => {
+    form.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const file = document.getElementById("audioFile").files[0];
+      const fileInput = document.getElementById("audio-file");
+      const file = fileInput.files[0];
+      if (!file) return alert("Select a file first!");
+
       const formData = new FormData();
       formData.append("audio", file);
 
-      const res = await fetch(`${BACKEND_URL}/music/upload`, {
+      const res = await fetch("/music/upload", {
         method: "POST",
-        body: formData
+        body: formData,
       });
+
       const data = await res.json();
-
       if (data.success) {
-        statusDiv.textContent = `✅ Uploaded: ${data.file}`;
+        resultDiv.textContent = `Uploaded: ${data.file}`;
       } else {
-        statusDiv.textContent = `❌ Upload failed`;
+        resultDiv.textContent = `Error: ${data.error}`;
       }
-    };
-
-    // ----- Live Mic -----
-    let stream;
-    let mediaRecorder;
-
-    document.getElementById("startLive").onclick = async () => {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaRecorder = new MediaRecorder(stream);
-      mediaRecorder.start();
-
-      document.getElementById("startLive").disabled = true;
-      document.getElementById("stopLive").disabled = false;
-
-      alert("LIVE MIC STARTED");
-    };
-
-    document.getElementById("stopLive").onclick = () => {
-      mediaRecorder.stop();
-      stream.getTracks().forEach(t => t.stop());
-
-      document.getElementById("startLive").disabled = false;
-      document.getElementById("stopLive").disabled = true;
-
-      alert("LIVE MIC STOPPED");
-    };
+    });
   </script>
 </body>
-</html>
+  </html>
