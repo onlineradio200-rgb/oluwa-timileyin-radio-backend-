@@ -8,11 +8,10 @@ const PORT = process.env.PORT || 10000;
 
 /* ---------- FOLDERS ---------- */
 const uploadDir = path.join(__dirname, "uploads");
-const publicDir = path.join(__dirname, "public");
+const publicDir = path.join(__dirname, "../public"); // frontend folder
 
 /* Create folders if missing */
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
-if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir);
 
 /* ---------- MIDDLEWARE ---------- */
 app.use(express.json());
@@ -36,37 +35,25 @@ const upload = multer({ storage });
 /* ---------- ROUTES ---------- */
 
 /* Home test */
-app.get("/", (req, res) => {
+app.get("/api/status", (req, res) => {
   res.json({ status: "Radio backend running" });
 });
 
 /* Upload audio (ADMIN / POSTMAN / CURL) */
 app.post("/music/upload", upload.single("audio"), (req, res) => {
-  if (!req.file) {
-    return res.status(400).json({ error: "No audio uploaded" });
-  }
-
-  res.json({
-    success: true,
-    file: `/uploads/${req.file.filename}`,
-  });
+  if (!req.file) return res.status(400).json({ error: "No audio uploaded" });
+  res.json({ success: true, file: `/uploads/${req.file.filename}` });
 });
 
 /* List uploaded music */
 app.get("/music/list", (req, res) => {
   fs.readdir(uploadDir, (err, files) => {
     if (err) return res.status(500).json([]);
-
-    const audioFiles = files.filter(f =>
-      f.match(/\.(mp3|aac|wav|ogg)$/i)
-    );
-
+    const audioFiles = files.filter(f => f.match(/\.(mp3|aac|wav|ogg)$/i));
     const result = audioFiles.map(f => `/uploads/${f}`);
     res.json(result);
   });
 });
 
 /* ---------- START SERVER ---------- */
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
