@@ -10,7 +10,6 @@ const PORT = process.env.PORT || 10000;
 const uploadDir = path.join(__dirname, "uploads");
 const publicDir = path.join(__dirname, "public");
 
-/* Create folders if missing */
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir);
 
@@ -35,12 +34,17 @@ const upload = multer({ storage });
 
 /* ---------- ROUTES ---------- */
 
-/* Home test */
+/* Root (safe check so browser does not confuse you) */
 app.get("/", (req, res) => {
-  res.json({ status: "Radio backend running" });
+  res.json({ status: "Oluwa-Timileyin Radio backend running" });
 });
 
-/* Upload audio (ADMIN / POSTMAN / CURL) */
+/* API status (frontend uses this) */
+app.get("/api/status", (req, res) => {
+  res.json({ status: "OK" });
+});
+
+/* Upload audio */
 app.post("/music/upload", upload.single("audio"), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: "No audio uploaded" });
@@ -52,17 +56,16 @@ app.post("/music/upload", upload.single("audio"), (req, res) => {
   });
 });
 
-/* List uploaded music */
+/* List audio */
 app.get("/music/list", (req, res) => {
   fs.readdir(uploadDir, (err, files) => {
-    if (err) return res.status(500).json([]);
+    if (err) return res.json([]);
 
     const audioFiles = files.filter(f =>
       f.match(/\.(mp3|aac|wav|ogg)$/i)
     );
 
-    const result = audioFiles.map(f => `/uploads/${f}`);
-    res.json(result);
+    res.json(audioFiles.map(f => `/uploads/${f}`));
   });
 });
 
