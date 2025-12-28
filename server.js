@@ -36,7 +36,7 @@ const upload = multer({ storage });
 /* ---------- ROUTES ---------- */
 
 /* Home test */
-app.get("/", (req, res) => {
+app.get("/api/status", (req, res) => {
   res.json({ status: "Radio backend running" });
 });
 
